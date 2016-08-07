@@ -2,62 +2,79 @@
 using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
+using System.Net.Sockets;
+using System;
+using System.IO;
+using System.Runtime.Serialization;
+using LitJson;
 
 public class move : MonoBehaviour {
-
-    static int[,] maze = new int[10, 10] {{0,0,0,0,0,0,0,0,0,0},
-                                          {0,0,0,0,0,0,0,0,0,0},
-                                          {0,0,0,0,0,0,0,0,0,0},
-                                          {1,1,1,0,0,1,1,0,0,1},
-                                          {0,0,0,0,0,0,0,0,0,0},
-                                          {1,1,0,1,1,0,0,1,0,0},
-                                          {0,0,0,0,0,0,0,0,0,0},
-                                          {1,1,1,0,1,1,1,1,0,1}, 
-                                          {0,0,0,0,0,0,0,1,0,0},
-                                          {0,0,0,0,1,0,1,0,0,0},  
+ 
+    /*
+     * 0 north
+     * 1 east
+     * 2 south
+     * 3 west
+     */
+  
+    static int[,] maze = new int[10, 10] {{0,1,0,0,0,0,1,0,0,0},
+                                          {0,1,0,1,1,0,1,0,1,0},
+                                          {0,1,0,0,1,0,0,0,1,0},
+                                          {0,1,1,0,1,1,1,1,1,1},
+                                          {0,1,0,0,1,0,0,0,0,0},
+                                          {0,1,0,1,1,0,0,1,0,0},
+                                          {0,1,0,0,1,0,0,0,0,0},
+                                          {0,1,1,0,1,1,1,1,0,1}, 
+                                          {0,1,0,0,1,0,0,1,0,0},
+                                          {0,0,0,1,1,0,1,0,0,0},  
     };
+
     const int row = 10;
     const int colomn = 10;
 
-    const int radius = 2;
+    const int radius = 0;
 
-    static int xMaze = 0;
-    static int zMaze = 0;
+    static float xPos = 0;
+    static float zPos = 0;
 
-    static float xPos = 5;
-    static float zPos = 5;
-
-    static int endX;
-    static int endZ;
-
-    static int distanceFromCenter = 10;
-
-    static bool changedir = false;
-
-    public static List<string> dir = new List<string>();
-    public static List<int[]> walls = new List<int[]>();
-    public static List<int[]> paths = new List<int[]>();
-
-    Vector3 velocity = new Vector3();
+    public static List<int> direction = new List<int>();
+    public static List<player> players = new List<player>();
+    public static List<Vector2> touchPosition = new List<Vector2>();
 
     Transform tr;
     GameObject wall;
 
+    Camera cam;
     Rigidbody r;
 
-    static int angelFromNorth =0;
-    static string GeometricalDirecion ="east";  
+    static int angelFromNorth = 90;
+    static int geometricalDirecion = 1;
+
+    int time =0;
+
+    TcpClient mySocket;
+    NetworkStream theStream;
+    StreamWriter theWriter;
+    StreamReader theReader;
+    string Host = "192.168.128.167";
+    int Port = 8585;
 
 	// Use this for initialization
     void Start()
     {
-        dir.Add("east");
-        dir.Add("");
-
-        r = GameObject.Find("Sphere").AddComponent<Rigidbody>();
-
         Application.targetFrameRate = 30;
+        
+        connectToSever();
+
+        direction.Add(1);
+        direction.Add(-1);
+        
+        r = transform.gameObject.AddComponent<Rigidbody>();
+        r.useGravity = false;
+
         transform.position = new Vector3(xPos,radius,zPos);
+        transform.localScale = new Vector3(2,2,2);
+        transform.rotation = Quaternion.Euler(0,0,0);
 
         for (int i = 0; i < row; i++) {
             for (int j = 0; j < colomn; j++)
@@ -68,43 +85,120 @@ public class move : MonoBehaviour {
 
                 if (maze[i, j] == 1)
                 {
-                    walls.Add(coordinate);
                     wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     wall.transform.position = new Vector3(i * 10 + 10/2, 2, j * 10 + 10/2);
                     wall.transform.localScale = new Vector3(10, 4, 10);
 
                 }
-                else
-                    paths.Add(coordinate);
             }
          }
     }
 
-    string recommandDir(int angel, string arrow)
+    public void connectToSever()
     {
-        if ((angel == 0 && arrow == "right") || (angel == 180 && arrow == "left"))
-            return "east";
-        else
-            if ((angel == 90 && arrow == "right") || (angel == 270 && arrow == "left"))
-                return "south";
-            else
-                if ((angel == 180 && arrow == "right") || (angel == 0 && arrow == "left"))
-                    return "west";
+        mySocket = new TcpClient(Host, Port);
+        theStream = mySocket.GetStream();
+        theWriter = new StreamWriter(theStream);
+        theReader = new StreamReader(theStream);
 
-                else
-                    return "north";
+        theWriter.Write("{\"name\":\"navid\"}");      //my name 
+        theWriter.Flush();
+
+        while (!(theStream.DataAvailable))
+        {
+            System.Threading.Thread.Sleep(100);
+        }
+        print("hello");
+        //print(theReader.ReadLine());
+        setPlayers();
+
+        for(int i=0;i<players.Count;i++)
+            if (players[i].getUsername().Equals("navid"))
+            {
+                xPos = players[i].getPositionX();
+                zPos = players[i].getPositionZ();
+                geometricalDirecion = players[i].getDirection();
+                players.RemoveAt(i);
+            }
     }
 
-    bool canGo(int number,string dir)
+    public void setPlayers()
+    {
+        string m = theReader.ReadLine().ToString();
+        print(m);
+
+        JsonData jsonvale = JsonMapper.ToObject(m);
+        print(jsonvale.Count+"          count");
+        for (int i = 0; i < jsonvale.Count; i++)
+        {
+            bool a = true;
+            GameObject o = new GameObject();
+            string name = "";
+            int dir = 0;
+            float x = 0;
+            float z = 0;
+
+            JsonData data = jsonvale[i];
+            ICollection keys = ((IDictionary)jsonvale).Keys;
+
+            foreach (string key in keys)
+            {
+                if (key.ToString() == "name")
+                {
+                    print(data[key].ToString());
+
+                    name = data[key].ToString();
+                }
+
+                if (key.ToString() == "x")
+                {
+                    print(data[key].ToString());
+                    x = (float)(Convert.ToDouble(data[key]));
+                }
+
+                if (key.ToString() == "z")
+                {
+                    print(data[key].ToString());
+                    z = (float)(Convert.ToDouble(data[key]));
+                }
+                if (key.ToString() == "direction")
+                {
+                    print(data[key].ToString());
+                    dir = (int)Convert.ToInt32(data[key]);
+                }
+                o = (GameObject)Instantiate(Resources.Load("Human"), new Vector3(10, 0, 5), Quaternion.Euler(0, 0, 0));
+                o.transform.position = new Vector3(x, 0, z);
+                players.Add(new player(name, o.transform, dir));
+            }
+
+        }
+  }
+
+    public int recommandDir(int angel, string arrow)
+    {
+        if ((angel == 0 && arrow == "right") || (angel == 180 && arrow == "left") || (angel == 270 && arrow == "down"))
+            return 1;
+        else
+            if ((angel == 90 && arrow == "right") || (angel == 270 && arrow == "left") || (angel == 0 && arrow == "down"))
+                return 2;
+            else
+                if ((angel == 180 && arrow == "right") || (angel == 0 && arrow == "left") || (angel == 90 && arrow == "down"))
+                    return 3;
+
+                else
+                    return 0;
+    }
+
+    bool canGo(int number,int dir)
     {
         int nextX;
         int nextZ;
 
         if (number == 0)
         {
-            if (dir == "north" && xPos > radius)
+            if (dir == 0 && xPos > 5)
             {
-                nextX = (int)((xPos - (radius + 1)) / 10);
+                nextX = (int)((xPos-5.2f) / 10);
                 nextZ = (int)((zPos) / 10);
 
                 if (maze[nextX, nextZ] == 0)
@@ -116,9 +210,9 @@ public class move : MonoBehaviour {
                     return false;
             }
 
-            if (dir == "south" && xPos < row * 10 - (radius + 1))
+            if (dir == 2 && xPos < row * 10 - (5))
             {
-                nextX = (int)((xPos + (radius + 1)) / 10);
+                nextX = (int)((xPos + (5)) / 10);
                 nextZ = (int)((zPos) / 10);
 
                 if (maze[nextX, nextZ] == 0)
@@ -130,10 +224,10 @@ public class move : MonoBehaviour {
                     return false;
             }
 
-            if (dir == "east" && zPos < (colomn * 10) - (radius + 1))
+            if (dir == 1 && zPos < (colomn * 10) - (5))
             {
                 nextX = (int)((xPos) / 10);
-                nextZ = (int)((zPos + (radius + 1)) / 10);
+                nextZ = (int)((zPos + (5)) / 10);
 
                 if (maze[nextX, nextZ] == 0)
                 {
@@ -144,10 +238,10 @@ public class move : MonoBehaviour {
                     return false;
             }
 
-            if (dir == "west" && zPos > radius)
+            if (dir == 3 && zPos > 5)
             {
                 nextX = (int)(xPos / 10);
-                nextZ = (int)((zPos - (radius + 1)) / 10);
+                nextZ = (int)((zPos - (5.2f)) / 10);
 
                 if (maze[nextX, nextZ] == 0)
                 {
@@ -163,91 +257,64 @@ public class move : MonoBehaviour {
 
         else // number==1
         {
-            if (dir == "north" && xPos > 10)
+            if (dir == 0 && xPos > 10)
             {
-                nextX = (int)((xPos - (distanceFromCenter)) / 10);
+                nextX = (int)((xPos - (10)) / 10);
                 nextZ = (int)((zPos) / 10);
-             //   print(nextX + "     " + nextZ);
-                if (maze[nextX, nextZ] == 0)
-                {
-        //            if (!changedir)
-       //             {
-                        endX = nextX * 10 + 10 / 2;
-                        endZ = nextZ * 10 + 10 / 2;
-      //              }
-//                    endX = nextX * 10 + 10 / 2;
- //                   endZ = nextZ * 10 + 10 / 2;
 
+                if (maze[nextX, nextZ] == 0 && Mathf.Abs(xPos-((nextX+1)*10+10/2))<=0.2f && Mathf.Abs(zPos-((nextZ)*10+10/2))<=0.2f)
+                {
+                    xPos = (nextX + 1) * 10 + 10 / 2;
+                    zPos = (nextZ) * 10 + 10 / 2;
                    angelFromNorth = 0;
-                   changedir = true;
                     return true;
                 }
                 else
                     return false;
             }
 
-            if (dir == "south" && xPos < row * 10 - (10))
+            if (dir == 2 && xPos < row * 10 - (10))
             {
-           //     if (!changedir)
-           //     {
                     nextX = (int)((xPos + (10)) / 10);
                     nextZ = (int)((zPos) / 10);
-           //     }
-
-                if (maze[nextX, nextZ] == 0)
+                    
+                if (maze[nextX, nextZ] == 0 && Mathf.Abs(xPos-((nextX-1)*10+10/2))<=0.2f && Mathf.Abs(zPos-((nextZ)*10+10/2))<=0.2f)
                 {
-
-           //         if (!changedir)
-           //         {
-                        endX = nextX * 10 + 10 / 2;
-                        endZ = nextZ * 10 + 10 / 2;
-          //          }
+                    xPos = (nextX - 1) * 10 + 10 / 2;
+                    zPos = (nextZ) * 10 + 10 / 2;
                     angelFromNorth = 180;
-                    changedir = true;
                     return true;
                 }
                 else
                     return false;
             }
 
-            if (dir == "east" && zPos < (colomn * 10) - (10))
+            if (dir == 1 && zPos < (colomn * 10) - (10))
             {
                 nextX = (int)((xPos) / 10);
                 nextZ = (int)((zPos + (10)) / 10);
 
-                if (maze[nextX, nextZ] == 0)
+                if (maze[nextX, nextZ] == 0 && Mathf.Abs(xPos-((nextX)*10+10/2))<=0.2f && Mathf.Abs(zPos-((nextZ-1)*10+10/2))<=0.2f)
                 {
-
-                 //   endX = nextX * 10 + 10 / 2;
-                  // endZ = nextZ * 10 + 10 / 2;
-
-            //        if (!changedir)
-            //        {
-                        endX = nextX * 10 + 10 / 2;
-                        endZ = nextZ * 10 + 10 / 2;
-            //        }
+                    xPos = (nextX) * 10 + 10 / 2;
+                    zPos = (nextZ-1) * 10 + 10 / 2;
                     angelFromNorth = 90;
-                    changedir = true;
                     return true;
                 }
                 else
                     return false;
             }
 
-            if (dir == "west" && zPos > 10)
+            if (dir == 3 && zPos > 10)
             {
                 nextX = (int)(xPos / 10);
                 nextZ = (int)((zPos - (10)) / 10);
 
-                if (maze[nextX, nextZ] == 0)
+                if (maze[nextX, nextZ] == 0 && Mathf.Abs(xPos-((nextX)*10+10/2))<=0.2f && Mathf.Abs(zPos-((nextZ+1)*10+10/2))<=0.2f)
                 {
-      //              if (!changedir)
-     //               {
-                                          endX = nextX * 10 + 10 / 2;
-                                        endZ = nextZ * 10 + 10 / 2;
-   //                 }
+                    xPos = (nextX) * 10 + 10 / 2;
+                    zPos = (nextZ+1) * 10 + 10 / 2;
                     angelFromNorth = 270;
-                    changedir = true;
                     return true;
                 }
                 else
@@ -259,124 +326,211 @@ public class move : MonoBehaviour {
         }
     }
 
-    void moveStraight()
+    void moveStraight(int player)
     {
-
-        if (GeometricalDirecion == "north")
+        if (player == 4)
         {
-            xPos -= 0.5f;
-            transform.position = new Vector3(xPos, radius, zPos);
+            if (geometricalDirecion == 0)
+            {
+                xPos -= 0.2f;
+                transform.position = new Vector3(xPos, radius, zPos);
+            }
+
+            if (geometricalDirecion == 2)
+            {
+                xPos += 0.2f;
+                transform.position = new Vector3(xPos, radius, zPos);
+            }
+
+            if (geometricalDirecion == 1)
+            {
+                zPos += 0.2f;
+                transform.position = new Vector3(xPos, radius, zPos);                
+            }
+
+            if (geometricalDirecion == 3)
+            {
+                zPos -= 0.2f;
+                transform.position = new Vector3(xPos, radius, zPos);
+            }
         }
 
-        if (GeometricalDirecion == "south")
+        else
         {
-            xPos += 0.5f;
-            transform.position = new Vector3(xPos, radius, zPos);
-        }
 
-        if (GeometricalDirecion == "east")
+            if (players[player].getDirection() == 0)
+            {
+                players[player].setPositionX(players[player].getTransform().position.x - 0.2f);
+            }
+
+            if (players[player].getDirection() == 2)
+            {
+                players[player].setPositionX(players[player].getTransform().position.x + 0.2f);
+            }
+
+            if (players[player].getDirection() == 1)
+            {
+                players[player].setPositionZ(players[player].getTransform().position.z + 0.2f);
+            }
+
+            if (players[player].getDirection() == 3)
+            {
+                players[player].setPositionZ(players[player].getTransform().position.z - 0.2f);
+            }
+
+            if (players[player].getDirection() == -1)
+            {
+                players[player].setPosition();
+            }
+        }
+    }
+
+    public void sendToSever()
+    {
+        Dictionary<string,string> data = new Dictionary<string, string>();
+
+        data["name"] = "navid";
+        data["x"] = xPos.ToString();
+        data["z"] = zPos.ToString();
+        data["direction"] = geometricalDirecion.ToString();
+
+        JsonData jd = JsonMapper.ToJson(data);
+
+        theWriter.Write(jd);  
+        theWriter.Flush();
+     }
+
+     public void recieveFromServer()
+     {
+         if (theStream.DataAvailable)
+         {
+             string m = theReader.ReadLine().ToString();
+             print(m);
+             JsonData jsonvale = JsonMapper.ToObject(m);
+          
+             ICollection keys = ((IDictionary)jsonvale).Keys;
+              int who=0;
+
+                foreach ( string key in keys )
+              {
+                    if(key.ToString()=="name"){
+                        for (int j = 0; j < players.Count; j++)
+                            if (players[j].getUsername() == jsonvale[key].ToString())
+                                who = j;
+                    }
+                    if(key.ToString()=="x"){
+                        players[who].setPositionX((float)Convert.ToDouble(jsonvale[key]));
+                    }
+                     if(key.ToString()=="z"){
+                         players[who].setPositionZ((float)Convert.ToDouble(jsonvale[key]));
+                    }
+                     if(key.ToString()=="direction"){
+                         players[who].setDirection((int)Convert.ToDouble(jsonvale[key]));
+                    }
+        //      }
+          }     
+     }
+}
+              
+     // Update is called once per frame
+     void FixedUpdate()
+     {
+        /* 
+         foreach (Touch touch in Input.touches)
+         {
+             if (touch.phase == TouchPhase.Began)
+                 touchPosition.Add(touch.position);
+
+             if (touch.phase == TouchPhase.Moved)
+                 touchPosition.Add(touch.position);
+
+             if (touch.phase == TouchPhase.Ended)
+             {
+                 if (touchPosition[0].x < touchPosition[touchPosition.Count - 1].x && Mathf.Abs(touchPosition[0].x - touchPosition[touchPosition.Count - 1].x) > Mathf.Abs(touchPosition[0].y - touchPosition[touchPosition.Count - 1].y))
+                 {
+                     time=0;         
+                     direction.RemoveAt(1);
+                     direction.Add(recommandDir(angelFromNorth, "right"));
+                 }
+                 if (touchPosition[0].x > touchPosition[touchPosition.Count - 1].x && Mathf.Abs(touchPosition[0].x - touchPosition[touchPosition.Count - 1].x) > Mathf.Abs(touchPosition[0].y - touchPosition[touchPosition.Count - 1].y))
+                 {
+                     time=0;
+                     direction.RemoveAt(1);
+                     direction.Add(recommandDir(angelFromNorth, "left"));
+                 }
+                 if (touchPosition[0].y > touchPosition[touchPosition.Count - 1].y && Mathf.Abs(touchPosition[0].x - touchPosition[touchPosition.Count - 1].x) < Mathf.Abs(touchPosition[0].y - touchPosition[touchPosition.Count - 1].y))
+                {
+                     time=0;
+                     direction.RemoveAt(1);
+                     direction.Add(recommandDir(angelFromNorth, "down")); 
+                }
+             }
+         }
+        */
+
+        time++;
+
+        recieveFromServer();
+
+        if (Input.GetKeyUp(KeyCode.RightArrow))
         {
-            zPos += 0.5f;
-            transform.position = new Vector3(xPos, 2, zPos);
+            time=0;
+            direction.RemoveAt(1);
+            direction.Add(recommandDir(angelFromNorth, "right"));
         }
-
-        if (GeometricalDirecion == "west")
-        {
-            zPos -= 0.5f;
-            transform.position = new Vector3(xPos, radius, zPos);
-        }
-    }
-    
-    Vector3 calcRejectVector(Vector3 me , Vector3 goal)
-    {
-        Vector3 v = me - goal;
-        float f = Mathf.Max(v.magnitude* 0.005f ,0.5f);
-        v = v.normalized * f;
-        return v;
-    }
-
-    Vector3 calcAttractiveVector(Vector3 me , Vector3 goal)
-    {
-        Vector3 v = goal - me;
-        float f = Mathf.Max(v.magnitude*0.5f,20);
-        v = v.normalized * f;
-        return v; 
-    }
-
-    void changeDirection()
-    {
-      //  int count = 0;
-        velocity = calcAttractiveVector(new Vector3(xPos,radius,zPos),new Vector3(endX,radius,endZ));
-
-        foreach (int[] wall in walls)
-          velocity += calcRejectVector(new Vector3(xPos,radius,zPos),new Vector3(wall[0]*10+10/2,radius,wall[1]*10+10/2));
-
-        r.velocity = velocity;
-  //      distanceFromCenter--;
- //       print(distanceFromCenter);
-    }
         
-	// Update is called once per frame
-    void FixedUpdate ()
-    {
-   //     print(changedir);
-
-        if (!changedir)
+        if (Input.GetKeyUp(KeyCode.LeftArrow))
         {
-            velocity = new Vector3(0,0,0);
+            time =0;
+            direction.RemoveAt(1);
+            direction.Add(recommandDir(angelFromNorth, "left"));
+        }
 
-            if (Input.GetKeyDown(KeyCode.RightArrow))
+        if (Input.GetKeyUp(KeyCode.DownArrow))
+        {
+            time = 0;
+            direction.RemoveAt(1);
+            direction.Add(recommandDir(angelFromNorth, "down"));
+        }
+        
+        if (canGo(1, direction[direction.Count - 1]))
+        {
+            if (time < 100)
             {
-              //  distanceFromCenter = 10;
-                dir.RemoveAt(1);
-                dir.Insert(1, recommandDir(angelFromNorth, "right"));
-             //   changedir = false;
-            }
-            if (Input.GetKeyDown(KeyCode.LeftArrow))
-            {
-             //   distanceFromCenter = 10;
-                dir.RemoveAt(1);
-                dir.Insert(1, recommandDir(angelFromNorth, "left"));
-             //   changedir = false;
-            }
-
-
-            if (canGo(1, dir[dir.Count - 1]))
-            {
-                GeometricalDirecion = dir[dir.Count - 1];
-                if(distanceFromCenter>0)
-                changeDirection();
-
-//                if (xPos == endX && zPos == endZ)
-         //       {
-        //            dir.RemoveAt(0);
-       //             dir.Insert(1, "");
-      //              changedir = false;
-     //           }
+                geometricalDirecion = direction[direction.Count - 1];
+                sendToSever();
+                moveStraight(4);
+                transform.rotation = Quaternion.Euler(0, angelFromNorth - 90, 0);
+                direction.RemoveAt(0);
+                direction.Add(-1);
+                time = 0;
             }
             else
-                if (canGo(0, dir[dir.Count - 2]))
-                {
-                    GeometricalDirecion = dir[dir.Count - 2];
-                    moveStraight();
-                }
-                else
-                    GeometricalDirecion = "";
-
-            if (GeometricalDirecion == "")
-                transform.position = new Vector3(xPos, radius, zPos);
-        }
-        else //changedir
-        {
-            xPos = (int)transform.position.x;
-            zPos = (int)transform.position.z;
-            changeDirection();
-            if (xPos == endX && zPos == endZ)
             {
-                changedir = false;
-                dir.RemoveAt(0);
-                dir.Add("");
+                direction.RemoveAt(1);
+                direction.Add(-1);
+                geometricalDirecion = direction[direction.Count - 2];
+                moveStraight(4);    
             }
-      }
-    }
+        }
+
+        else
+            if (canGo(0, direction[direction.Count - 2]))
+            {
+                geometricalDirecion = direction[direction.Count - 2];
+                moveStraight(4);
+            }
+            else
+            {
+                geometricalDirecion = -1;
+                transform.position = new Vector3(xPos, radius, zPos);
+
+                //sendToSever();
+            }
+
+        for (int i = 0; i < players.Count; i++)
+        {
+            moveStraight(i);
+        }
+   }
 }
