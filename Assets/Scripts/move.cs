@@ -57,10 +57,13 @@ public class move : MonoBehaviour {
     StreamReader theReader;
     string Host = "192.168.139.63";
     int Port = 8585;
+    static string user;
 
 	// Use this for initialization
     void Start()
     {
+        user = menuscript.userName;
+        
         Application.targetFrameRate = 30;
         
         connectToSever();
@@ -100,34 +103,21 @@ public class move : MonoBehaviour {
         theWriter = new StreamWriter(theStream);
         theReader = new StreamReader(theStream);
 
-        theWriter.Write("{\"name\":\"navid\"}");      //my name 
+        theWriter.Write("{\"name\":\""+user+"\"}");      //my name 
         theWriter.Flush();
 
         while (!(theStream.DataAvailable))
         {
             System.Threading.Thread.Sleep(100);
         }
-     //   print("hello");
 
         setPlayers();
-    //    print("finish");
-
-     //   for(int i=0;i<players.Count;i++)
-      //      if (players[i].getUsername().Equals("navid"))
-     //       {
-       //         xPos = players[i].getPositionX();
-       //         zPos = players[i].getPositionZ();
-       //         geometricalDirecion = players[i].getDirection();
-       //         players.RemoveAt(i);
-       //         print("remove");
-      //      }
-     //   print("ready");
     }
 
     public void setPlayers()
     {
 
-        for (int i = 0; i < 2; i++)
+        for (int i = 0; i < 5; i++)
         {
             bool a = true;
             GameObject o;
@@ -136,39 +126,27 @@ public class move : MonoBehaviour {
             float x = 0;
             float z = 0;
 
-        //    print("for");
             string m = theReader.ReadLine().ToString();
-        //    print(m);
+
             JsonData jsonvale = JsonMapper.ToObject(m);
             ICollection keys = ((IDictionary)jsonvale).Keys;
 
             foreach (string key in keys)
             {
                 if (key.ToString() == "name")
-                {
-           //         print(jsonvale[key].ToString());
                     name = jsonvale[key].ToString();
-                }
 
                 if (key.ToString() == "x")
-                {
-          //          print(jsonvale[key].ToString());
                     x = (float)(Convert.ToDouble(jsonvale[key].ToString()));
-                }
-
+ 
                 if (key.ToString() == "z")
-                {
-            //        print(jsonvale[key].ToString());
                     z = (float)(Convert.ToDouble(jsonvale[key].ToString()));
-                }
+                
                 if (key.ToString() == "direction")
-                {
-            //        print(jsonvale[key].ToString());
                     dir = (int)Convert.ToInt32(jsonvale[key].ToString());
-                }
             }
-         //   print("happy");
-            if (name != "navid")
+
+            if (name != user)
             {
                 o = (GameObject)Instantiate(Resources.Load("Human"));
                 o.transform.position = new Vector3(x, 0, z);
@@ -200,55 +178,7 @@ public class move : MonoBehaviour {
                     transform.rotation = Quaternion.Euler(0, 180, 0);
             }
         }
-       /* string m = theReader.ReadLine().ToString();
-        print(m);
-
-        JsonData jsonvale = JsonMapper.ToObject(m);
-
-        for (int i = 0; i < jsonvale.Count; i++)
-        {
-            bool a = true;
-            GameObject o = new GameObject();
-            string name = "";
-            int dir = 0;
-            float x = 0;
-            float z = 0;
-
-            JsonData data = jsonvale[i];
-            print(data.ToString());
-            ICollection keys = ((IDictionary)data).Keys;
-            
-            foreach (string key in keys)
-            {
-                if (key.ToString() == "name")
-                {
-                    print(data[key].ToString());
-
-                    name = data[key].ToString();
-                }
-
-                if (key.ToString() == "x")
-                {
-                    print(data[key].ToString());
-                    x = (float)(Convert.ToDouble(data[key]));
-                }
-
-                if (key.ToString() == "z")
-                {
-                    print(data[key].ToString());
-                    z = (float)(Convert.ToDouble(data[key]));
-                }
-                if (key.ToString() == "direction")
-                {
-                    print(data[key].ToString());
-                    dir = (int)Convert.ToInt32(data[key]);
-                }
-                o = (GameObject)Instantiate(Resources.Load("Human"), new Vector3(10, 0, 5), Quaternion.Euler(0, 0, 0));
-                o.transform.position = new Vector3(x, 0, z);
-                players.Add(new player(name, o.transform, dir));
-            }
-
-        }*/
+     
   }
 
     public int recommandDir(int angel, string arrow)
@@ -341,10 +271,7 @@ public class move : MonoBehaviour {
                     nextZ = (int)((players[player].getPositionZ()) / 10);
 
                     if (maze[nextX, nextZ] == 0)
-                    {
-                       // angelFromNorth = 0;
                         return true;
-                    }
                     else
                         return false;
                 }
@@ -355,10 +282,8 @@ public class move : MonoBehaviour {
                     nextZ = (int)((players[player].getPositionZ()) / 10);
 
                     if (maze[nextX, nextZ] == 0)
-                    {
-                        //angelFromNorth = 180;
                         return true;
-                    }
+        
                     else
                         return false;
                 }
@@ -369,10 +294,7 @@ public class move : MonoBehaviour {
                     nextZ = (int)((players[player].getPositionZ() + (5)) / 10);
 
                     if (maze[nextX, nextZ] == 0)
-                    {
-                       // angelFromNorth = 90;
                         return true;
-                    }
                     else
                         return false;
                 }
@@ -383,10 +305,7 @@ public class move : MonoBehaviour {
                     nextZ = (int)((players[player].getPositionZ() - (5.2f)) / 10);
 
                     if (maze[nextX, nextZ] == 0)
-                    {
-                   //     angelFromNorth = 270;
                         return true;
-                    }
                     else
                         return false;
                 }
@@ -529,8 +448,7 @@ public class move : MonoBehaviour {
     {
         Dictionary<string,string> data = new Dictionary<string, string>();
 
-        print("send to server is ok");
-        data["name"] = "navid";
+        data["name"] = user;
         data["x"] = xPos.ToString();
         data["z"] = zPos.ToString();
         data["direction"] = geometricalDirecion.ToString();
@@ -543,10 +461,8 @@ public class move : MonoBehaviour {
 
      public void recieveFromServer()
      {
-         print("recieveFromServer");
          if (theStream.DataAvailable)
          {
-             print("have value");
              string m = theReader.ReadLine().ToString();
              print(m);
              JsonData jsonvale = JsonMapper.ToObject(m);
@@ -589,7 +505,12 @@ public class move : MonoBehaviour {
      // Update is called once per frame
      void FixedUpdate()
      {
-        /* 
+            
+
+        time++;
+
+        recieveFromServer();
+
          foreach (Touch touch in Input.touches)
          {
              if (touch.phase == TouchPhase.Began)
@@ -620,11 +541,13 @@ public class move : MonoBehaviour {
                 }
              }
          }
-        */
 
-        time++;
 
-        recieveFromServer();
+    /*    for (int i = 0; i < players.Count; i++)
+        {
+            if (canGo(0, i, players[i].getDirection()))
+                moveStraight(i);
+        }
 
         if (Input.GetKeyUp(KeyCode.RightArrow))
         {
@@ -646,7 +569,8 @@ public class move : MonoBehaviour {
             direction.RemoveAt(1);
             direction.Add(recommandDir(angelFromNorth, "down"));
         }
-        
+        */
+
         if (canGo(1,4, direction[direction.Count - 1]))
         {
             if (time < 100)
@@ -682,10 +606,5 @@ public class move : MonoBehaviour {
                 //sendToSever();
          //   }
 
-        for (int i = 0; i < players.Count; i++)
-        {
-            if(canGo(0,i,players[i].getDirection()))
-            moveStraight(i);
-        }
    }
 }

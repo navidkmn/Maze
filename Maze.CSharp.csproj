@@ -71,6 +71,7 @@
     <Compile Include="Assets\Crafting Mecanim Animation Pack FREE\Code\SmoothFollow.cs" />
     <Compile Include="Assets\Scripts\CameraFollow.cs" />
     <Compile Include="Assets\Scripts\CameraResolution.cs" />
+    <Compile Include="Assets\Scripts\menuscript.cs" />
     <Compile Include="Assets\Scripts\move.cs" />
     <Compile Include="Assets\Scripts\player.cs" />
   </ItemGroup>
