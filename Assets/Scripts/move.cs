@@ -31,31 +31,25 @@ public class move : MonoBehaviour {
     const int row = 10;
     const int colomn = 10;
 
-    const int radius = 0;
-
-    static float xPos = 0;
-    static float zPos = 0;
-
     public static List<int> direction = new List<int>();
     public static List<player> players = new List<player>();
     public static List<Vector2> touchPosition = new List<Vector2>();
 
     Transform tr;
     GameObject wall;
-
-    Camera cam;
     Rigidbody r;
 
     static int angelFromNorth = 90;
     static int geometricalDirecion = 1;
 
-    int time =0;
+    int time = 0;
 
     TcpClient mySocket;
     NetworkStream theStream;
     StreamWriter theWriter;
     StreamReader theReader;
-    string Host = "192.168.139.63";
+
+    string host;
     int Port = 8585;
     static string user;
 
@@ -63,7 +57,8 @@ public class move : MonoBehaviour {
     void Start()
     {
         user = menuscript.userName;
-        
+        host = menuscript.host;
+
         Application.targetFrameRate = 30;
         
         connectToSever();
@@ -73,10 +68,6 @@ public class move : MonoBehaviour {
         
         r = transform.gameObject.AddComponent<Rigidbody>();
         r.useGravity = false;
-
-        transform.position = new Vector3(xPos,radius,zPos);
-        transform.localScale = new Vector3(2,2,2);
-        transform.rotation = Quaternion.Euler(0,0,0);
 
         for (int i = 0; i < row; i++) {
             for (int j = 0; j < colomn; j++)
@@ -90,7 +81,7 @@ public class move : MonoBehaviour {
                     wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     wall.transform.position = new Vector3(i * 10 + 10/2, 2, j * 10 + 10/2);
                     wall.transform.localScale = new Vector3(10, 4, 10);
-
+                    wall.GetComponent<Renderer>().material.color = Color.red;
                 }
             }
          }
@@ -98,7 +89,7 @@ public class move : MonoBehaviour {
 
     public void connectToSever()
     {
-        mySocket = new TcpClient(Host, Port);
+        mySocket = new TcpClient(host, Port);
         theStream = mySocket.GetStream();
         theWriter = new StreamWriter(theStream);
         theReader = new StreamReader(theStream);
@@ -117,7 +108,7 @@ public class move : MonoBehaviour {
     public void setPlayers()
     {
 
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 4; i++)
         {
             bool a = true;
             GameObject o;
@@ -165,8 +156,7 @@ public class move : MonoBehaviour {
 
             else
             {
-                xPos = x;
-                zPos = z;
+                transform.position = new Vector3(x,0,z);
                 geometricalDirecion = dir;
                 if (dir == 0)
                     transform.rotation = Quaternion.Euler(0, -90, 0);
@@ -205,10 +195,10 @@ public class move : MonoBehaviour {
         {
             if (player == 4)
             {
-                if (dir == 0 && xPos > 5)
+                if (dir == 0 && transform.position.x > 5)
                 {
-                    nextX = (int)((xPos - 5.2f) / 10);
-                    nextZ = (int)((zPos) / 10);
+                    nextX = (int)((transform.position.x - 5.2f) / 10);
+                    nextZ = (int)((transform.position.z) / 10);
 
                     if (maze[nextX, nextZ] == 0)
                     {
@@ -219,10 +209,10 @@ public class move : MonoBehaviour {
                         return false;
                 }
 
-                if (dir == 2 && xPos < row * 10 - (5))
+                if (dir == 2 && transform.position.x < row * 10 - (5))
                 {
-                    nextX = (int)((xPos + (5)) / 10);
-                    nextZ = (int)((zPos) / 10);
+                    nextX = (int)((transform.position.x + (5)) / 10);
+                    nextZ = (int)((transform.position.z) / 10);
 
                     if (maze[nextX, nextZ] == 0)
                     {
@@ -233,10 +223,10 @@ public class move : MonoBehaviour {
                         return false;
                 }
 
-                if (dir == 1 && zPos < (colomn * 10) - (5))
+                if (dir == 1 && transform.position.z < (colomn * 10) - (5))
                 {
-                    nextX = (int)((xPos) / 10);
-                    nextZ = (int)((zPos + (5)) / 10);
+                    nextX = (int)((transform.position.x) / 10);
+                    nextZ = (int)((transform.position.z + (5)) / 10);
 
                     if (maze[nextX, nextZ] == 0)
                     {
@@ -247,10 +237,10 @@ public class move : MonoBehaviour {
                         return false;
                 }
 
-                if (dir == 3 && zPos > 5)
+                if (dir == 3 && transform.position.z > 5)
                 {
-                    nextX = (int)(xPos / 10);
-                    nextZ = (int)((zPos - (5.2f)) / 10);
+                    nextX = (int)(transform.position.x / 10);
+                    nextZ = (int)((transform.position.z - (5.2f)) / 10);
 
                     if (maze[nextX, nextZ] == 0)
                     {
@@ -316,15 +306,14 @@ public class move : MonoBehaviour {
 
         else // number==1
         {
-            if (dir == 0 && xPos > 10)
+            if (dir == 0 && transform.position.x > 10)
             {
-                nextX = (int)((xPos - (10)) / 10);
-                nextZ = (int)((zPos) / 10);
+                nextX = (int)((transform.position.x - (10)) / 10);
+                nextZ = (int)((transform.position.z) / 10);
 
-                if (maze[nextX, nextZ] == 0 && Mathf.Abs(xPos-((nextX+1)*10+10/2))<=0.2f && Mathf.Abs(zPos-((nextZ)*10+10/2))<=0.2f)
+                if (maze[nextX, nextZ] == 0 && Mathf.Abs(transform.position.x - ((nextX + 1) * 10 + 10 / 2)) <= 0.2f && Mathf.Abs(transform.position.z - ((nextZ) * 10 + 10 / 2)) <= 0.2f)
                 {
-                    xPos = (nextX + 1) * 10 + 10 / 2;
-                    zPos = (nextZ) * 10 + 10 / 2;
+                    transform.position = new Vector3((nextX + 1) * 10 + 10 / 2, 0, (nextZ) * 10 + 10 / 2);
                    angelFromNorth = 0;
                     return true;
                 }
@@ -332,15 +321,14 @@ public class move : MonoBehaviour {
                     return false;
             }
 
-            if (dir == 2 && xPos < row * 10 - (10))
+            if (dir == 2 && transform.position.x < row * 10 - (10))
             {
-                    nextX = (int)((xPos + (10)) / 10);
-                    nextZ = (int)((zPos) / 10);
-                    
-                if (maze[nextX, nextZ] == 0 && Mathf.Abs(xPos-((nextX-1)*10+10/2))<=0.2f && Mathf.Abs(zPos-((nextZ)*10+10/2))<=0.2f)
+                nextX = (int)((transform.position.x + (10)) / 10);
+                nextZ = (int)((transform.position.z) / 10);
+
+                if (maze[nextX, nextZ] == 0 && Mathf.Abs(transform.position.x - ((nextX - 1) * 10 + 10 / 2)) <= 0.2f && Mathf.Abs(transform.position.z - ((nextZ) * 10 + 10 / 2)) <= 0.2f)
                 {
-                    xPos = (nextX - 1) * 10 + 10 / 2;
-                    zPos = (nextZ) * 10 + 10 / 2;
+                    transform.position = new Vector3((nextX - 1) * 10 + 10 / 2, 0, (nextZ) * 10 + 10 / 2);
                     angelFromNorth = 180;
                     return true;
                 }
@@ -348,15 +336,14 @@ public class move : MonoBehaviour {
                     return false;
             }
 
-            if (dir == 1 && zPos < (colomn * 10) - (10))
+            if (dir == 1 && transform.position.z < (colomn * 10) - (10))
             {
-                nextX = (int)((xPos) / 10);
-                nextZ = (int)((zPos + (10)) / 10);
+                nextX = (int)((transform.position.x) / 10);
+                nextZ = (int)((transform.position.z + (10)) / 10);
 
-                if (maze[nextX, nextZ] == 0 && Mathf.Abs(xPos-((nextX)*10+10/2))<=0.2f && Mathf.Abs(zPos-((nextZ-1)*10+10/2))<=0.2f)
+                if (maze[nextX, nextZ] == 0 && Mathf.Abs(transform.position.x - ((nextX) * 10 + 10 / 2)) <= 0.2f && Mathf.Abs(transform.position.z - ((nextZ - 1) * 10 + 10 / 2)) <= 0.2f)
                 {
-                    xPos = (nextX) * 10 + 10 / 2;
-                    zPos = (nextZ-1) * 10 + 10 / 2;
+                    transform.position = new Vector3((nextX) * 10 + 10 / 2, 0, (nextZ - 1) * 10 + 10 / 2);
                     angelFromNorth = 90;
                     return true;
                 }
@@ -364,15 +351,14 @@ public class move : MonoBehaviour {
                     return false;
             }
 
-            if (dir == 3 && zPos > 10)
+            if (dir == 3 && transform.position.z > 10)
             {
-                nextX = (int)(xPos / 10);
-                nextZ = (int)((zPos - (10)) / 10);
+                nextX = (int)(transform.position.x / 10);
+                nextZ = (int)((transform.position.z - (10)) / 10);
 
-                if (maze[nextX, nextZ] == 0 && Mathf.Abs(xPos-((nextX)*10+10/2))<=0.2f && Mathf.Abs(zPos-((nextZ+1)*10+10/2))<=0.2f)
+                if (maze[nextX, nextZ] == 0 && Mathf.Abs(transform.position.x - ((nextX) * 10 + 10 / 2)) <= 0.2f && Mathf.Abs(transform.position.z - ((nextZ + 1) * 10 + 10 / 2)) <= 0.2f)
                 {
-                    xPos = (nextX) * 10 + 10 / 2;
-                    zPos = (nextZ+1) * 10 + 10 / 2;
+                    transform.position = new Vector3((nextX) * 10 + 10 / 2, 0, (nextZ + 1) * 10 + 10 / 2);
                     angelFromNorth = 270;
                     return true;
                 }
@@ -390,53 +376,32 @@ public class move : MonoBehaviour {
         if (player == 4)
         {
             if (geometricalDirecion == 0)
-            {
-                xPos -= 0.2f;
-                transform.position = new Vector3(xPos, radius, zPos);
-            }
+              transform.position = new Vector3(transform.position.x - (0.2f),0,transform.position.z);
 
-            if (geometricalDirecion == 2)
-            {
-                xPos += 0.2f;
-                transform.position = new Vector3(xPos, radius, zPos);
-            }
-
+            if (geometricalDirecion == 2)    
+                transform.position = new Vector3(transform.position.x + (0.2f), 0, transform.position.z);
+            
             if (geometricalDirecion == 1)
-            {
-                zPos += 0.2f;
-                transform.position = new Vector3(xPos, radius, zPos);                
-            }
+                transform.position = new Vector3(transform.position.x,0,transform.position.z + (0.2f));                
 
             if (geometricalDirecion == 3)
-            {
-                zPos -= 0.2f;
-                transform.position = new Vector3(xPos, radius, zPos);
+                transform.position = new Vector3(transform.position.x,0,transform.position.z - (0.2f));                
             }
-        }
-
+        
         else
         {
-
             if (players[player].getDirection() == 0)
-            {
                 players[player].setPositionX(players[player].getTransform().position.x - 0.2f);
-            }
-
+            
             if (players[player].getDirection() == 2)
-            {
                 players[player].setPositionX(players[player].getTransform().position.x + 0.2f);
-            }
-
+            
             if (players[player].getDirection() == 1)
-            {
                 players[player].setPositionZ(players[player].getTransform().position.z + 0.2f);
-            }
-
+        
             if (players[player].getDirection() == 3)
-            {
                 players[player].setPositionZ(players[player].getTransform().position.z - 0.2f);
-            }
-
+        
   //          if (players[player].getDirection() == -1)
  //           {
   //              players[player].setPosition();
@@ -446,17 +411,31 @@ public class move : MonoBehaviour {
 
     public void sendToSever()
     {
-        Dictionary<string,string> data = new Dictionary<string, string>();
+        if(mySocket.Connected){
+        
+            Dictionary<string,string> data = new Dictionary<string, string>();
 
-        data["name"] = user;
-        data["x"] = xPos.ToString();
-        data["z"] = zPos.ToString();
-        data["direction"] = geometricalDirecion.ToString();
+            data["name"] = user;
+            data["x"] = transform.position.x.ToString();
+            data["z"] = transform.position.z.ToString();
+            data["direction"] = geometricalDirecion.ToString();
 
-        JsonData jd = JsonMapper.ToJson(data);
+            JsonData jd = JsonMapper.ToJson(data);
 
-        theWriter.Write(jd);  
-        theWriter.Flush();
+            theWriter.Write(jd);  
+            theWriter.Flush();
+        }
+
+        else
+        {
+            mySocket = new TcpClient(host, Port);
+            theStream = mySocket.GetStream();
+            theWriter = new StreamWriter(theStream);
+            theReader = new StreamReader(theStream);
+
+            theWriter.Write("{\"name\":\"" + user + "\"}");      //my name 
+            theWriter.Flush();
+        }
      }
 
      public void recieveFromServer()
@@ -464,7 +443,7 @@ public class move : MonoBehaviour {
          if (theStream.DataAvailable)
          {
              string m = theReader.ReadLine().ToString();
-             print(m);
+             
              JsonData jsonvale = JsonMapper.ToObject(m);
           
              ICollection keys = ((IDictionary)jsonvale).Keys;
@@ -494,24 +473,34 @@ public class move : MonoBehaviour {
                              players[who].getTransform().rotation = Quaternion.Euler(0, 90, 0);
                          if (dir == 3)
                              players[who].getTransform().rotation = Quaternion.Euler(0, 180, 0);
-
-
                      }
-        //      }
           }     
      }
 }
+
+     void checkOtherConncting()
+     {
+         if (theStream.DataAvailable)
+         {
+             string m = theReader.ReadLine();
+             JsonData jsonvale = JsonMapper.ToObject(m);
+
+             ICollection keys = ((IDictionary)jsonvale).Keys;
+
+             foreach (string key in keys)
+                 if (key.ToString().Equals("disconnect"))
+                     print(jsonvale[key] + " disconnected");
+         }
+     }
               
      // Update is called once per frame
      void FixedUpdate()
      {
-            
-
         time++;
 
         recieveFromServer();
 
-         foreach (Touch touch in Input.touches)
+    /*     foreach (Touch touch in Input.touches)
          {
              if (touch.phase == TouchPhase.Began)
                  touchPosition.Add(touch.position);
@@ -540,10 +529,9 @@ public class move : MonoBehaviour {
                      direction.Add(recommandDir(angelFromNorth, "down")); 
                 }
              }
-         }
+         }*/
 
-
-    /*    for (int i = 0; i < players.Count; i++)
+      for (int i = 0; i < players.Count; i++)
         {
             if (canGo(0, i, players[i].getDirection()))
                 moveStraight(i);
@@ -569,16 +557,16 @@ public class move : MonoBehaviour {
             direction.RemoveAt(1);
             direction.Add(recommandDir(angelFromNorth, "down"));
         }
-        */
+
 
         if (canGo(1,4, direction[direction.Count - 1]))
         {
             if (time < 100)
             {
                 geometricalDirecion = direction[direction.Count - 1];
-                sendToSever();
                 moveStraight(4);
                 transform.rotation = Quaternion.Euler(0, angelFromNorth - 90, 0);
+                sendToSever();
                 direction.RemoveAt(0);
                 direction.Add(-1);
                 time = 0;
@@ -598,6 +586,8 @@ public class move : MonoBehaviour {
                 geometricalDirecion = direction[direction.Count - 2];
                 moveStraight(4);
             }
+
+        checkOtherConncting();
          //   else
          //   {
            //     geometricalDirecion = -1;
@@ -605,6 +595,5 @@ public class move : MonoBehaviour {
 
                 //sendToSever();
          //   }
-
    }
 }
