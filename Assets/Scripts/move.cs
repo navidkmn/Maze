@@ -24,8 +24,8 @@ public class move : MonoBehaviour {
                                           {0,1,0,1,1,0,0,1,0,0},
                                           {0,1,0,0,1,0,0,0,0,0},
                                           {0,1,1,0,1,1,1,1,0,1}, 
-                                          {0,1,0,0,1,0,0,1,0,0},
-                                          {0,0,0,1,1,0,1,0,0,0},  
+                                          {0,1,0,0,0,0,0,1,0,0},
+                                          {0,0,0,1,1,0,0,0,0,0},  
     };
 
     const int row = 10;
@@ -39,8 +39,8 @@ public class move : MonoBehaviour {
     GameObject wall;
     Rigidbody r;
 
-    static int angelFromNorth = 90;
-    static int geometricalDirecion = 1;
+    static int angelFromNorth;
+    static int geometricalDirecion;
 
     int time = 0;
 
@@ -103,14 +103,14 @@ public class move : MonoBehaviour {
         }
 
         setPlayers();
+        print("plays");
     }
 
     public void setPlayers()
     {
 
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 2; i++)
         {
-            bool a = true;
             GameObject o;
             string name = "";
             int dir = 0;
@@ -139,6 +139,7 @@ public class move : MonoBehaviour {
 
             if (name != user)
             {
+                print(dir + "   doshman");
                 o = (GameObject)Instantiate(Resources.Load("Human"));
                 o.transform.position = new Vector3(x, 0, z);
                 
@@ -156,19 +157,31 @@ public class move : MonoBehaviour {
 
             else
             {
+                print(dir + "   me");
                 transform.position = new Vector3(x,0,z);
                 geometricalDirecion = dir;
                 if (dir == 0)
-                    transform.rotation = Quaternion.Euler(0, -90, 0);
-                if (dir == 1)
+                {
                     transform.rotation = Quaternion.Euler(0, 0, 0);
+                    angelFromNorth = 0;
+                }
+                if (dir == 1)
+                {
+                    transform.rotation = Quaternion.Euler(0, 0, 0);
+                    angelFromNorth = 90;
+                }
                 if (dir == 2)
-                    transform.rotation = Quaternion.Euler(0, 90, 0);
+                {
+                    transform.rotation = Quaternion.Euler(0, 0, 0);
+                    angelFromNorth = 180;
+                }
                 if (dir == 3)
-                    transform.rotation = Quaternion.Euler(0, 180, 0);
+                {
+                    transform.rotation = Quaternion.Euler(0, 0, 0);
+                    angelFromNorth = 270;
+                }
             }
-        }
-     
+        }   
   }
 
     public int recommandDir(int angel, string arrow)
@@ -411,8 +424,6 @@ public class move : MonoBehaviour {
 
     public void sendToSever()
     {
-        if(mySocket.Connected){
-        
             Dictionary<string,string> data = new Dictionary<string, string>();
 
             data["name"] = user;
@@ -424,19 +435,6 @@ public class move : MonoBehaviour {
 
             theWriter.Write(jd);  
             theWriter.Flush();
-        }
-
-        else
-            if(Time.time%1==0)
-        {
-            mySocket = new TcpClient(host, Port);
-            theStream = mySocket.GetStream();
-            theWriter = new StreamWriter(theStream);
-            theReader = new StreamReader(theStream);
-
-            theWriter.Write("{\"name\":\"" + user + "\"}");      //my name 
-            theWriter.Flush();
-        }
      }
 
      public void recieveFromServer()
@@ -444,7 +442,7 @@ public class move : MonoBehaviour {
          if (theStream.DataAvailable)
          {
              string m = theReader.ReadLine().ToString();
-             
+             print(m);
              JsonData jsonvale = JsonMapper.ToObject(m);
           
              ICollection keys = ((IDictionary)jsonvale).Keys;
@@ -484,21 +482,43 @@ public class move : MonoBehaviour {
          if (theStream.DataAvailable)
          {
              string m = theReader.ReadLine();
+             print(m);
              JsonData jsonvale = JsonMapper.ToObject(m);
 
              ICollection keys = ((IDictionary)jsonvale).Keys;
 
              foreach (string key in keys)
                  if (key.ToString().Equals("disconnect"))
-                     print(jsonvale[key] + " disconnected");
+                     print(jsonvale[key].ToString() + " disconnected");
+         }
+     }
+
+     void checkMyConnecting()
+     {
+         if (!mySocket.Connected)
+         {
+
+             if (Time.time % 1 == 0)
+             {
+                 print("back");
+                 mySocket = new TcpClient(host, Port);
+                 theStream = mySocket.GetStream();
+                 theWriter = new StreamWriter(theStream);
+                 theReader = new StreamReader(theStream);
+
+                 theWriter.Write("{\"name\":\"" + user + "\"}");      //my name 
+                 theWriter.Flush();
+             }
          }
      }
               
      // Update is called once per frame
      void FixedUpdate()
      {
+
         time++;
 
+        checkMyConnecting();
         recieveFromServer();
 
 /*        if (Input.GetTouch(0).phase == TouchPhase.Began)
