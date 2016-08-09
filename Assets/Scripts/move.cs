@@ -427,6 +427,7 @@ public class move : MonoBehaviour {
         }
 
         else
+            if(Time.time%1==0)
         {
             mySocket = new TcpClient(host, Port);
             theStream = mySocket.GetStream();
@@ -500,6 +501,40 @@ public class move : MonoBehaviour {
 
         recieveFromServer();
 
+/*        if (Input.GetTouch(0).phase == TouchPhase.Began)
+            touchPosition.Add(Input.GetTouch(0).position);
+        
+         if (Input.GetTouch(0).phase == TouchPhase.Moved)
+            touchPosition.Add(Input.GetTouch(0).position);
+        
+         if (Input.GetTouch(0).phase == TouchPhase.Ended) 
+         {
+             if (touchPosition[0].x < touchPosition[touchPosition.Count - 1].x && Mathf.Abs(touchPosition[0].x - touchPosition[touchPosition.Count - 1].x) > Mathf.Abs(touchPosition[0].y - touchPosition[touchPosition.Count - 1].y))
+             {
+                 time = 0;
+                 direction.RemoveAt(1);
+                 direction.Add(recommandDir(angelFromNorth, "right"));
+             }
+             if (touchPosition[0].x > touchPosition[touchPosition.Count - 1].x && Mathf.Abs(touchPosition[0].x - touchPosition[touchPosition.Count - 1].x) > Mathf.Abs(touchPosition[0].y - touchPosition[touchPosition.Count - 1].y))
+             {
+                 time = 0;
+                 direction.RemoveAt(1);
+                 direction.Add(recommandDir(angelFromNorth, "left"));
+             }
+             if (touchPosition[0].y > touchPosition[touchPosition.Count - 1].y && Mathf.Abs(touchPosition[0].x - touchPosition[touchPosition.Count - 1].x) < Mathf.Abs(touchPosition[0].y - touchPosition[touchPosition.Count - 1].y))
+             {
+                 time = 0;
+                 direction.RemoveAt(1);
+                 direction.Add(recommandDir(angelFromNorth, "down"));
+             }
+             touchPosition.Clear();
+         }
+         */
+  
+         
+  
+
+
     /*     foreach (Touch touch in Input.touches)
          {
              if (touch.phase == TouchPhase.Began)
@@ -528,6 +563,7 @@ public class move : MonoBehaviour {
                      direction.RemoveAt(1);
                      direction.Add(recommandDir(angelFromNorth, "down")); 
                 }
+     *              touchPosition.Clear();
              }
          }*/
 
