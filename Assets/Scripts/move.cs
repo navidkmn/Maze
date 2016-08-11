@@ -505,6 +505,65 @@ public class move : MonoBehaviour {
                  theWriter.Flush();
              }
      }
+
+     void touch()
+     {
+         foreach (Touch touch in Input.touches)
+         {
+             if (touch.phase == TouchPhase.Began)
+                 touchPosition.Add(touch.position);
+
+             if (touch.phase == TouchPhase.Moved)
+                 touchPosition.Add(touch.position);
+
+             if (touch.phase == TouchPhase.Ended)
+             {
+                 if (touchPosition[0].x < touchPosition[touchPosition.Count - 1].x && Mathf.Abs(touchPosition[0].x - touchPosition[touchPosition.Count - 1].x) > Mathf.Abs(touchPosition[0].y - touchPosition[touchPosition.Count - 1].y))
+                 {
+                     time = 0;
+                     direction.RemoveAt(1);
+                     direction.Add(recommandDir(angelFromNorth, "right"));
+                 }
+                 if (touchPosition[0].x > touchPosition[touchPosition.Count - 1].x && Mathf.Abs(touchPosition[0].x - touchPosition[touchPosition.Count - 1].x) > Mathf.Abs(touchPosition[0].y - touchPosition[touchPosition.Count - 1].y))
+                 {
+                     time = 0;
+                     direction.RemoveAt(1);
+                     direction.Add(recommandDir(angelFromNorth, "left"));
+                 }
+                 if (touchPosition[0].y > touchPosition[touchPosition.Count - 1].y && Mathf.Abs(touchPosition[0].x - touchPosition[touchPosition.Count - 1].x) < Mathf.Abs(touchPosition[0].y - touchPosition[touchPosition.Count - 1].y))
+                 {
+                     time = 0;
+                     direction.RemoveAt(1);
+                     direction.Add(recommandDir(angelFromNorth, "down"));
+                 }
+                 touchPosition.Clear();
+             }
+         }
+     }
+
+     void arrowKey()
+     {
+         if (Input.GetKeyUp(KeyCode.RightArrow))
+         {
+             time = 0;
+             direction.RemoveAt(1);
+             direction.Add(recommandDir(angelFromNorth, "right"));
+         }
+
+         if (Input.GetKeyUp(KeyCode.LeftArrow))
+         {
+             time = 0;
+             direction.RemoveAt(1);
+             direction.Add(recommandDir(angelFromNorth, "left"));
+         }
+
+         if (Input.GetKeyUp(KeyCode.DownArrow))
+         {
+             time = 0;
+             direction.RemoveAt(1);
+             direction.Add(recommandDir(angelFromNorth, "down"));
+         }
+     }
               
      // Update is called once per frame
      void FixedUpdate()
@@ -531,60 +590,8 @@ public class move : MonoBehaviour {
                 moveStraight(i);
         }
 
-         /*
-         foreach (Touch touch in Input.touches)
-         {
-             if (touch.phase == TouchPhase.Began)
-                 touchPosition.Add(touch.position);
-
-             if (touch.phase == TouchPhase.Moved)
-                 touchPosition.Add(touch.position);
-
-             if (touch.phase == TouchPhase.Ended)
-             {
-                 if (touchPosition[0].x < touchPosition[touchPosition.Count - 1].x && Mathf.Abs(touchPosition[0].x - touchPosition[touchPosition.Count - 1].x) > Mathf.Abs(touchPosition[0].y - touchPosition[touchPosition.Count - 1].y))
-                 {
-                     time=0;         
-                     direction.RemoveAt(1);
-                     direction.Add(recommandDir(angelFromNorth, "right"));
-                 }
-                 if (touchPosition[0].x > touchPosition[touchPosition.Count - 1].x && Mathf.Abs(touchPosition[0].x - touchPosition[touchPosition.Count - 1].x) > Mathf.Abs(touchPosition[0].y - touchPosition[touchPosition.Count - 1].y))
-                 {
-                     time=0;
-                     direction.RemoveAt(1);
-                     direction.Add(recommandDir(angelFromNorth, "left"));
-                 }
-                 if (touchPosition[0].y > touchPosition[touchPosition.Count - 1].y && Mathf.Abs(touchPosition[0].x - touchPosition[touchPosition.Count - 1].x) < Mathf.Abs(touchPosition[0].y - touchPosition[touchPosition.Count - 1].y))
-                {
-                     time=0;
-                     direction.RemoveAt(1);
-                     direction.Add(recommandDir(angelFromNorth, "down")); 
-                }
-                   touchPosition.Clear();
-             }
-         }*/
-               
-        if (Input.GetKeyUp(KeyCode.RightArrow))
-        {
-            time=0;
-            direction.RemoveAt(1);
-            direction.Add(recommandDir(angelFromNorth, "right"));
-        }
-        
-        if (Input.GetKeyUp(KeyCode.LeftArrow))
-        {
-            time =0;
-            direction.RemoveAt(1);
-            direction.Add(recommandDir(angelFromNorth, "left"));
-        }
-
-        if (Input.GetKeyUp(KeyCode.DownArrow))
-        {
-            time = 0;
-            direction.RemoveAt(1);
-            direction.Add(recommandDir(angelFromNorth, "down"));
-        }
-         
+         arrowKey();
+        // touch();
          
         if (canGo(1,4, direction[direction.Count - 1]))
         {
