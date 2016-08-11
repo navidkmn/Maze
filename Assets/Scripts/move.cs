@@ -43,6 +43,7 @@ public class move : MonoBehaviour {
     static int geometricalDirecion;
 
     int time = 0;
+    int tryToConnect = 0;
 
     TcpClient mySocket;
     NetworkStream theStream;
@@ -50,6 +51,7 @@ public class move : MonoBehaviour {
     StreamReader theReader;
 
     string host;
+    int playersNo;
     int Port = 8585;
     static string user;
 
@@ -58,11 +60,13 @@ public class move : MonoBehaviour {
     {
         user = menuscript.userName;
         host = menuscript.host;
+        playersNo = (int)Convert.ToInt32(menuscript.player);
 
         Application.targetFrameRate = 30;
         
         connectToSever();
-
+        //transform.position = new Vector3(5,0,5);
+       // transform.rotation = Quaternion.Euler(0, 0, 0);
         direction.Add(1);
         direction.Add(-1);
         
@@ -103,13 +107,12 @@ public class move : MonoBehaviour {
         }
 
         setPlayers();
-        print("plays");
     }
 
     public void setPlayers()
     {
 
-        for (int i = 0; i < 2; i++)
+        for (int i = 0; i < playersNo; i++)
         {
             GameObject o;
             string name = "";
@@ -414,11 +417,6 @@ public class move : MonoBehaviour {
         
             if (players[player].getDirection() == 3)
                 players[player].setPositionZ(players[player].getTransform().position.z - 0.2f);
-        
-  //          if (players[player].getDirection() == -1)
- //           {
-  //              players[player].setPosition();
-   //         }
         }
     }
 
@@ -495,10 +493,7 @@ public class move : MonoBehaviour {
 
      void checkMyConnecting()
      {
-         if (!mySocket.Connected)
-         {
-
-             if (Time.time % 1 == 0)
+             if (Time.time % 1 == 0 && tryToConnect<400)
              {
                  print("back");
                  mySocket = new TcpClient(host, Port);
@@ -509,7 +504,6 @@ public class move : MonoBehaviour {
                  theWriter.Write("{\"name\":\"" + user + "\"}");      //my name 
                  theWriter.Flush();
              }
-         }
      }
               
      // Update is called once per frame
@@ -517,45 +511,28 @@ public class move : MonoBehaviour {
      {
 
         time++;
+        tryToConnect++;
 
-        checkMyConnecting();
-        recieveFromServer();
+        if (!mySocket.Connected)
+            checkMyConnecting();
 
-/*        if (Input.GetTouch(0).phase == TouchPhase.Began)
-            touchPosition.Add(Input.GetTouch(0).position);
-        
-         if (Input.GetTouch(0).phase == TouchPhase.Moved)
-            touchPosition.Add(Input.GetTouch(0).position);
-        
-         if (Input.GetTouch(0).phase == TouchPhase.Ended) 
-         {
-             if (touchPosition[0].x < touchPosition[touchPosition.Count - 1].x && Mathf.Abs(touchPosition[0].x - touchPosition[touchPosition.Count - 1].x) > Mathf.Abs(touchPosition[0].y - touchPosition[touchPosition.Count - 1].y))
-             {
-                 time = 0;
-                 direction.RemoveAt(1);
-                 direction.Add(recommandDir(angelFromNorth, "right"));
-             }
-             if (touchPosition[0].x > touchPosition[touchPosition.Count - 1].x && Mathf.Abs(touchPosition[0].x - touchPosition[touchPosition.Count - 1].x) > Mathf.Abs(touchPosition[0].y - touchPosition[touchPosition.Count - 1].y))
-             {
-                 time = 0;
-                 direction.RemoveAt(1);
-                 direction.Add(recommandDir(angelFromNorth, "left"));
-             }
-             if (touchPosition[0].y > touchPosition[touchPosition.Count - 1].y && Mathf.Abs(touchPosition[0].x - touchPosition[touchPosition.Count - 1].x) < Mathf.Abs(touchPosition[0].y - touchPosition[touchPosition.Count - 1].y))
-             {
-                 time = 0;
-                 direction.RemoveAt(1);
-                 direction.Add(recommandDir(angelFromNorth, "down"));
-             }
-             touchPosition.Clear();
-         }
-         */
-  
-         
-  
+        if (mySocket.Connected)
+        {
+            recieveFromServer();
+            tryToConnect = 0;
+        }
 
+         if (mySocket.Connected && Time.time % 0.5 == 0)
+             sendToSever();
 
-    /*     foreach (Touch touch in Input.touches)
+         for (int i = 0; i < players.Count; i++)
+        {
+            if (canGo(0, i, players[i].getDirection()))
+                moveStraight(i);
+        }
+
+         /*
+         foreach (Touch touch in Input.touches)
          {
              if (touch.phase == TouchPhase.Began)
                  touchPosition.Add(touch.position);
@@ -583,16 +560,10 @@ public class move : MonoBehaviour {
                      direction.RemoveAt(1);
                      direction.Add(recommandDir(angelFromNorth, "down")); 
                 }
-     *              touchPosition.Clear();
+                   touchPosition.Clear();
              }
          }*/
-
-      for (int i = 0; i < players.Count; i++)
-        {
-            if (canGo(0, i, players[i].getDirection()))
-                moveStraight(i);
-        }
-
+               
         if (Input.GetKeyUp(KeyCode.RightArrow))
         {
             time=0;
@@ -613,8 +584,8 @@ public class move : MonoBehaviour {
             direction.RemoveAt(1);
             direction.Add(recommandDir(angelFromNorth, "down"));
         }
-
-
+         
+         
         if (canGo(1,4, direction[direction.Count - 1]))
         {
             if (time < 100)
@@ -622,7 +593,10 @@ public class move : MonoBehaviour {
                 geometricalDirecion = direction[direction.Count - 1];
                 moveStraight(4);
                 transform.rotation = Quaternion.Euler(0, angelFromNorth - 90, 0);
+                
+                if(mySocket.Connected)
                 sendToSever();
+                
                 direction.RemoveAt(0);
                 direction.Add(-1);
                 time = 0;
@@ -643,13 +617,7 @@ public class move : MonoBehaviour {
                 moveStraight(4);
             }
 
-        checkOtherConncting();
-         //   else
-         //   {
-           //     geometricalDirecion = -1;
-           //     transform.position = new Vector3(xPos, radius, zPos);
-
-                //sendToSever();
-         //   }
+         if(mySocket.Connected)
+              checkOtherConncting();
    }
 }
